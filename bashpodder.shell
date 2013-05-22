@@ -7,6 +7,10 @@
 # and post your changes to the forum at http://lincgeek.org/lincware
 # I'd appreciate it!
 
+WGET=${WGET:-wget}
+RSS_WGET=${RSS_WGET:-${WGET}}
+POD_WGET=${POD_WGET:-${WGET}}
+
 # Make script crontab friendly:
 cd $(dirname $0)
 
@@ -22,13 +26,13 @@ rm -f temp.log
 # Read the bp.conf file and wget any url not already in the podcast.log file:
 while read podcast
 	do
-	file=$(xsltproc parse_enclosure.xsl $podcast 2> /dev/null || wget -q $podcast -O - | tr '\r' '\n' | tr \' \" | sed -n 's/.*url="\([^"]*\)".*/\1/p')
+	file=$(xsltproc parse_enclosure.xsl $podcast 2> /dev/null || ${RSS_WGET} -q $podcast -O - | tr '\r' '\n' | tr \' \" | sed -n 's/.*url="\([^"]*\)".*/\1/p')
 	for url in $file
 		do
 		echo $url >> temp.log
 		if ! grep "$url" podcast.log > /dev/null
 			then
-			wget -t 10 -U BashPodder -c -q -O $datadir/$(echo "$url" | awk -F'/' {'print $NF'} | awk -F'=' {'print $NF'} | awk -F'?' {'print $1'}) "$url"
+			${POD_WGET} -t 10 -U BashPodder -c -q -O $datadir/$(echo "$url" | awk -F'/' {'print $NF'} | awk -F'=' {'print $NF'} | awk -F'?' {'print $1'}) "$url"
 		fi
 		done
 	done < bp.conf
