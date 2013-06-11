@@ -17,16 +17,15 @@ cd $(dirname $0)
 # datadir is the directory you want podcasts saved to:
 datadir=$(date +%Y-%m-%d)
 
-# Delete any temp file:
-rm -f temp.log
-
+# create tempfile
+TMPFILE=$(mktemp bashpodder.XXXXXX.log)
 # Read the bp.conf file and wget any url not already in the podcast.log file:
 while read podcast
 	do
 	file=$(xsltproc parse_enclosure.xsl $podcast 2> /dev/null || ${RSS_WGET} -q $podcast -O - | tr '\r' '\n' | tr \' \" | sed -n 's/.*url="\([^"]*\)".*/\1/p')
 	for url in $file
 		do
-		echo $url >> temp.log
+		echo $url >> $TMPFILE
 		if ! grep "$url" podcast.log > /dev/null
 			then
 			mkdir -p $datadir
@@ -35,9 +34,10 @@ while read podcast
 		done
 	done < bp.conf
 # Move dynamically created log file to permanent log file:
-cat podcast.log >> temp.log
-sort temp.log | uniq > podcast.log
-rm temp.log
+MERGEFILE=$(mktemp podcast.log.XXXXXX)
+sort -u podcast.log $TMPFILE > $MERGEFILE
+mv $MERGEFILE podcast.log
+rm $TMPFILE
 
 # Create an m3u playlist if there were any downloads:
 if [ -d $datadir ]
